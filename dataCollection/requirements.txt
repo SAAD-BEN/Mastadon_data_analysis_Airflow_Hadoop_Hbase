@@ -1,0 +1,3 @@
+Mastodon.py
+python-dotenv
+hdfs
