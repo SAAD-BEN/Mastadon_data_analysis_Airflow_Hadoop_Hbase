@@ -1,2 +1,4 @@
-pip install -r /home/loadinFromMastadon/requirements.txt
-python3 /home/loadinFromMastadon/loadData.py
+sudo pip install -r /home/project/Mastadon_data_analysis_Airflow_Hadoop_Hbase/dataCollection/requirements.txt
+sudo python3 /home/project/Mastadon_data_analysis_Airflow_Hadoop_Hbase/dataCollection/loadData.py
+
+hadoop fs -rm -r /raw/
