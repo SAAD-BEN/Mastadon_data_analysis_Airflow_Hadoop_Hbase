@@ -1,69 +1,114 @@
-# Mastadon data analysis Airflow Hadoop_Hbase
+# Mastodon Data Pipeline README
 
-## Mastodon Raw Data Structure
+This README provides an overview of a data pipeline project that consists of four main phases: data extraction from the Mastodon API, data processing with Hadoop MapReduce using Python streaming, data storage in HBase, and orchestration with Apache Airflow for automated daily execution. The project aims to collect and analyze data from the Mastodon platform, a federated social media platform.
 
-This section provides an overview of the data structure used to represent Mastodon posts in their raw form. Mastodon is a federated social media platform, and this structure helps you understand how to organize and access information about individual posts within the Mastodon ecosystem.
+## Folders structure
+```
+Repository Root
+├── dataCollection
+│   ├── Commands.txt
+│   ├── last_toot_id.txt
+│   ├── loadData.py
+│   ├── public_posts.json
+│   ├── requirements.txt
+│   ├── tests.ipynb
+│
+├── mapReduce
+│   ├── Python
+│   │   ├── mapper.py
+│   │   ├── reducer.py
+│
+├── airFlowDag
+│
+├── README.md
+```
 
-### Post Data Structure
+## Project Overview
 
-Each Mastodon post is represented as a dictionary with the following key-value pairs:
+As a Data Developer, your role in this project is to set up an automated pipeline to address the following challenges:
 
-- `id`: The unique identifier for the post.
-- `created_at`: The date and time when the post was created.
-- `in_reply_to_id`: The ID of the post this post is replying to (if applicable).
-- `in_reply_to_account_id`: The ID of the account being replied to (if applicable).
-- `sensitive`: A Boolean indicating whether the post contains sensitive content.
-- `spoiler_text`: Text used to provide a content warning for sensitive posts.
-- `visibility`: The visibility of the post (e.g., public, unlisted, private).
-- `language`: The language in which the post is written.
-- `uri`: The URI of the post.
-- `url`: The URL of the post.
-- `replies_count`: The count of replies to the post.
-- `reblogs_count`: The count of reblogs (shares) of the post.
-- `favourites_count`: The count of times the post has been favorited.
-- `edited_at`: Date and time when the post was edited (if applicable).
-- `content`: The content of the post (the actual message or status).
+### Phase 1: Data Collection
 
-### Account Data Structure
+- **Data Extraction:** Utilize the Mastodon API with your access tokens to gather raw data from the Mastodon platform.
 
-Each post includes information about the user who made the post. This information is structured as follows:
+- **Raw Data Storage:** Store the raw data in a distributed file system such as HDFS for scalability.
 
-- `id`: The unique identifier for the user account.
-- `username`: The username of the user.
-- `acct`: The account identifier (username with domain).
-- `display_name`: The display name of the user.
-- `locked`: A Boolean indicating whether the user's account is locked.
-- `bot`: A Boolean indicating whether the user is a bot.
-- `discoverable`: A Boolean indicating whether the user's account is discoverable.
-- `group`: A Boolean indicating whether the user's account is a group account.
-- `created_at`: The date and time when the user account was created.
-- `note`: A text note or bio associated with the user.
-- `url`: The URL of the user's profile.
-- `uri`: The URI of the user's profile.
-- `avatar`: URL to the user's avatar.
-- `avatar_static`: URL to the user's static avatar.
-- `header`: URL to the user's header image.
-- `header_static`: URL to the user's static header image.
-- `followers_count`: The count of followers of the user.
-- `following_count`: The count of accounts the user is following.
-- `statuses_count`: The count of posts made by the user.
-- `last_status_at`: The date and time of the user's last post.
-- `emojis`: A list of custom emojis used by the user.
-- `fields`: Additional information fields associated with the user.
+- **HDFS Data Lake Modeling:** Define the data lake schema for HDFS.
 
-### Additional Data
+### Phase 2: Data Processing with MapReduce
 
-- `media_attachments`: A list of media attachments (e.g., images) included in the post.
-- `mentions`: A list of mentions of other users in the post.
-- `tags`: A list of tags associated with the post.
-- `emojis`: A list of custom emojis used in the post.
-- `card`: Additional card information (if applicable).
-- `poll`: Poll information (if a poll is attached to the post).
+- **Mapper:** Process the input data and generate key-value pairs based on the desired metrics (e.g., user followers, engagement rate, URLs, emojis, etc.).
 
-This data structure helps you understand how Mastodon posts are organized and can be used as a reference when working with raw Mastodon data.
+- **Reducer:** Aggregate the key-value pairs produced by the mapper.
 
-For more information about Mastodon, please refer to the official Mastodon documentation.
+- **MapReduce Job Execution:** Use Hadoop streaming API to execute the MapReduce task, providing the mapper and reducer scripts as inputs.
 
----
+- **Monitoring:** Keep track of job progress through the Hadoop web UI.
 
-**Note:** This is a generalized data structure for Mastodon posts and user accounts. Actual data may vary depending on the instance and post content.
+### Phase 3: Data Storage in HBase
+
+- **HBase Schema Design:** Design the HBase schema based on the information you want to extract.
+
+- **Best Practices:** Follow best practices for row key design, column family design, compression, bloom filters, batch inserts, etc.
+
+- **Table Creation:** Create the necessary tables in HBase.
+
+- **Data Insertion:** Populate the output from the reducer into HBase tables using a Python HBase client or your preferred method.
+
+### Phase 4: Orchestration with Apache Airflow
+
+- **Workflow Orchestration:** Define a Directed Acyclic Graph (DAG) to orchestrate the entire workflow.
+
+- **Task Creation:** Create tasks for running the MapReduce job and storing results in HBase.
+
+- **Monitoring and Error Handling:** Monitor progress and manage errors or failures.
+
+### Phase 5: Data Analysis
+
+After successfully completing the previous phases, you can perform data analysis. You'll write queries to:
+
+#### User Analysis
+
+- Identify users with the highest number of followers.
+- Analyze user engagement rates.
+- Analyze user growth over time using the `user_created_at` metric.
+
+#### Content Analysis
+
+- Identify the most shared external websites (URLs).
+
+#### Language and Region Analysis
+
+- Analyze the distribution of posts based on their language.
+
+#### Media Engagement Analysis
+
+- Determine the number of posts with multimedia attachments.
+
+#### Tag and Mention Analysis
+
+- Identify the most frequently used tags and mentioned users.
+
+### Phase 6: Workflow Execution
+
+In the Apache Airflow web interface, activate the DAG, monitor DAG execution progress, and check logs for any issues. Once the DAG is complete, review the results in HBase.
+
+### Phase 7: Optimization and Monitoring
+
+Optimize MapReduce scripts for better performance. Monitor HBase for storage issues and set up alerts in Airflow for task failures. Regularly monitor Hadoop using its respective web interface.
+
+### Phase 8: Data Access Rights Configuration Updates
+
+Update API tokens if organizational roles change, ensuring they have the necessary permissions for data retrieval.
+
+### Phase 9: Documentation Updates
+
+Update access and sharing rules documentation, including details on roles, permissions, access requests, and access granting/revocation processes.
+
+### Phase 10: Scheduling and Compliance
+
+Ensure that DAGs are scheduled at appropriate intervals for data refresh. Update the data processing log to ensure GDPR compliance by documenting all personal data from Mastodon and how it's processed.
+
+Please refer to the old README for an overview of the Mastodon data structure, which provides insight into the format of Mastodon posts and user accounts.
+
+**Note:** The Mastodon data structure mentioned in the old README is a generalized representation, and actual data may vary depending on the instance and post content.
