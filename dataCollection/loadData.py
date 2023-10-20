@@ -4,7 +4,7 @@ import os
 from hdfs import InsecureClient
 import datetime
 import json
-from dateutil import tz
+import time
 
 load_dotenv()
 
@@ -37,8 +37,23 @@ try:
 except FileNotFoundError:
     last_toot_id = None
 
-# Retrieve public timeline posts since the last fetched toot
-public_posts = mastodon.timeline_public(limit=40, since_id=last_toot_id)
+public_posts = []
+
+# Specify the number of runs
+n = 2000
+
+for _ in range(n):
+    # Retrieve public posts
+    new = mastodon.timeline_public(limit=40, since_id=last_toot_id)
+    
+    # Append the current run's public posts to the list
+    public_posts.extend(new)
+    print(f'Number of posts retrieved:  {str(len(public_posts))}' , end='\r')
+    
+    # Update the last_toot_id
+    if public_posts:
+        latest_toot = public_posts[0]
+        last_toot_id = str(latest_toot['id'])
 
 class CustomJSONEncoder(json.JSONEncoder):
     def default(self, o):
@@ -50,13 +65,19 @@ class CustomJSONEncoder(json.JSONEncoder):
             return o.__dict__
         return super().default(o)
 
-# Create a JSON file to store the Mastodon data
-with hdfs_client.write(hdfs_path + '/mastodon.json', encoding='utf-8') as writer:
-    # Serialize public_posts to JSON
-    json.dump(public_posts, writer, ensure_ascii=False, indent=4, default=str, cls=CustomJSONEncoder)
+formatted_data = []
+for obj in public_posts:
+    formatted_obj = json.dumps(obj, separators=(',', ':'), default=str, cls=CustomJSONEncoder)
+    formatted_data.append(formatted_obj)
 
+# Convert the formatted data to a string
+formatted_data_str = '\n'.join(formatted_data)
 
-print('Data saved successfully to HDFS : ' + hdfs_path + '/mastodon.json')
+# Save the preprocessed data to HDFS
+with hdfs_client.write(hdfs_path + '-posts.json', encoding='utf-8') as writer:
+    writer.write(formatted_data_str)
+
+print('Data saved successfully to HDFS : ' + hdfs_path + '-posts.json')
 
 # After retrieving the public posts, you can save the latest toot_id to the file.
 if public_posts:
@@ -67,11 +88,11 @@ if public_posts:
     latest_toot_id_str = str(latest_toot_id)
 
     #Check if the file exists
-    if hdfs_client.status('last_toot_id.txt', strict=False):
+    if hdfs_client.status('/home/project/Mastadon_data_analysis_Airflow_Hadoop_Hbase/dataCollection/last_toot_id.txt', strict=False):
         # update the file
-        hdfs_client.write('last_toot_id.txt', latest_toot_id_str, encoding='utf-8', overwrite=True)
+        hdfs_client.write('/home/project/Mastadon_data_analysis_Airflow_Hadoop_Hbase/dataCollection/last_toot_id.txt', latest_toot_id_str, encoding='utf-8', overwrite=True)
     else:
         # Write the latest toot_id to the file
-        with open('last_toot_id.txt', 'w') as f:
+        with open('/home/project/Mastadon_data_analysis_Airflow_Hadoop_Hbase/dataCollection/last_toot_id.txt', 'w') as f:
             f.write(latest_toot_id_str)
     

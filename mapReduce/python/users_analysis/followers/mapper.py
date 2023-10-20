@@ -1,60 +1,30 @@
+#!/usr/bin/env python3
 import json
-from hdfs import InsecureClient
-import datetime
+import sys
 
-# Get the current date and time
-now = datetime.datetime.now()
-hdfs_path = '/raw/' + str(now.year) + '-' + str(now.month) + '-' + str(now.day) + '/' 
+def process_data(input_data):
+    for line in input_data:
+        try:
+            data = json.loads(line)
+            date = data["created_at"].split(' ')[1].split('+')[0]
+            account = data["account"]
+            if account:
+                user_id = 'user:' + str(account.get('id'))
+                followers = int(account.get('followers_count', 0))
+                reblogs_count = data['reblogs_count'] if 'reblogs_count' in data else 0
+                favourites_count = data['favourites_count'] if 'favourites_count' in data else 0
 
-# Load the data from HDFS
-data = []
+                # Calculate the engagement rate
+                engagement_rate = (reblogs_count + favourites_count) / followers if followers > 0 else 0
 
-# Initialize an HDFS client
-hdfs_client = InsecureClient('http://localhost:9870', user='hadoop')
+                # Emit key-value pair for the reducer
+                print(f"{user_id}\t{date}@{followers}@{engagement_rate:.4f}")
 
-# Mapper
-def map_to_followers(data):
-    follower_counts = {}
-    for toot in data:
-        account = toot.get('account')
-        if account:
-            user_id = account.get('id')
-            followers = account.get('followers_count', 0)
-            print(user_id, followers)
-            # yield user_id, followers
+        except Exception as e:
+            # Add a print statement to capture and log any exceptions
+            print("Error:", str(e), file=sys.stderr)
 
-# Get the current date and time
-now = datetime.datetime.now()
-hdfs_base_path = '/raw/' + str(now.year) + '-' + str(now.month) + '-' + str(now.day) + '/'
-
-
-# Function to find JSON files in HDFS folders and apply the mapper
-def process_hdfs_folders(hdfs_path):
-    data = []
-
-    # List folders within the specified HDFS path
-    folder_names = hdfs_client.list(hdfs_path)
-
-    for folder_name in folder_names:
-        folder_path = hdfs_path + folder_name + '/'
-
-        # List files within the folder
-        files = hdfs_client.list(folder_path)
-
-        for file in files:
-            if file.endswith('.json'):
-                with hdfs_client.read(folder_path + file, encoding='utf-8') as reader:
-                    file_content = reader.read()
-                    print(file_content)
-                    # for line in file_content.split('\n'):
-                    #     try:
-                    #         data.append(json.loads(line))
-                    #     except json.JSONDecodeError as e:
-                    #         print(f"Error loading JSON from file {file}: {e}")
-                    #         continue
-    
-    # Apply the mapper function to the data
-    # map_to_followers(data)
-
-# Call the function to process HDFS folders and JSON files
-process_hdfs_folders(hdfs_base_path)
+# Example usage of the process_data function
+if __name__ == "__main__":
+    input_data = sys.stdin
+    process_data(input_data)
