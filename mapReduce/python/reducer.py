@@ -2,77 +2,157 @@
 import sys
 
 current_user = None
+current_croissance = None
+current_language = None
+current_toot_with_media = None
+current_emoji = None
+current_url = None
+
 earliest_followers = float('inf')
-earliest_time = "00:00:00"
-engagement_rate_sum = 0.0
+old_time = "00:00:00"
+
+engagement_rate_sum = 0.0000
+croissance_sum = 0
+language_sum = 0
+toot_with_media_sum = 0
+emoji_sum = 0
+url_sum = 0
 count = 1
 
+unique_users_roissance = []
+
+user_dict = {}
+croissance_dict = {}
+language_dict = {}
+toot_with_media_dict = {}
+emoji_dict = {}
+url_dict = {}
+
 for line in sys.stdin:
-    user, data = line.strip().split('\t')
-    followers = int(data.split('@')[1])
-    time = data.split('@')[0]
-    engagement_rate = float(data.split('@')[2])
+    key = line.strip().split('\t')[0]
+    key = key.strip()
+    # if key starts with user, it's a user record
+    if key.startswith("user"):
+        user, strdata = line.strip().split('\t')
+        # string to dict
+        data = eval(strdata.strip())
+        followers = int(data["followers"])
+        time = data['date']
+        engagement_rate = float(data["engagement_rate"])
 
-    if current_user == user:
-        if time < earliest_time:
-            earliest_time = time
+        if current_user == user:
+            if time > old_time:
+                old_time = time
+                earliest_followers = followers
+            engagement_rate_sum += engagement_rate
+            count += 1
+        else:
+            if current_user is not None:
+                if count > 0:
+                    engagement_rate_avg = engagement_rate_sum / count
+                    user_dict["engagement_rate"] = engagement_rate_avg
+                    user_dict["followers"] = earliest_followers
+                    print(f"{current_user}\t{user_dict}")
+            current_user = user
             earliest_followers = followers
-        engagement_rate_sum += engagement_rate
-        count += 1
-    else:
-        if current_user is not None:
-            if count > 0:
-                engagement_rate_avg = engagement_rate_sum / count
-                print(f"{current_user}\tengagement_rate:{engagement_rate_avg:.4f}")
-                print(f"{current_user}\tfollowers:{earliest_followers}")
-        current_user = user
-        earliest_followers = followers
-        earliest_time = time
-        engagement_rate_sum = engagement_rate
-        count = 1
+            old_time = time
+            engagement_rate_sum = engagement_rate
+            count = 1
 
-# Print the last user's data
+    # if key starts with croissance, it's a croissance record
+    elif key.startswith("croissance"):
+        croissance, strdata = line.strip().split('\t')
+        data = eval(strdata.strip())
+        user_id = data["user_id"]
+        if croissance == current_croissance:
+            if current_croissance is not None:
+                if user_id not in unique_users_roissance:
+                    unique_users_roissance.append(user_id)
+                    croissance_sum += data["value"]
+        elif croissance != current_croissance:
+            if current_croissance is not None:
+                croissance_dict["count"] = croissance_sum
+                print(f"{current_croissance}\t{croissance_dict}")
+            current_croissance = croissance
+            croissance_sum = 1
+            unique_users_roissance = [user_id]
+
+    #if key starts with language, it's a language record
+    elif key.startswith("language"):
+        language, strdata = line.strip().split('\t')
+        data = eval(strdata.strip())
+        if language == current_language:
+            if current_language is not None:
+                language_sum += data["value"]
+        elif language != current_language:
+            if current_language is not None:
+                language_dict["count"] = language_sum
+                print(f"{current_language}\t{language_dict}")
+            current_language = language
+            language_sum = 1
+
+    elif key.startswith("toot_with_media"):
+        toot_with_media, strdata = line.strip().split('\t')
+        data = eval(strdata.strip())
+        if toot_with_media == current_toot_with_media:
+            if current_toot_with_media is not None:
+                toot_with_media_sum += data["value"]
+        elif toot_with_media != current_toot_with_media:
+            if current_toot_with_media is not None:
+                toot_with_media_dict["count"] = toot_with_media_sum
+                print(f"{current_toot_with_media}\t{toot_with_media_dict}")
+            current_toot_with_media = toot_with_media
+            toot_with_media_sum = 1
+    
+    elif key.startswith("emoji"):
+        emoji_id , strdata = line.strip().split('\t')
+        data = eval(strdata.strip())
+        if emoji_id == current_emoji:
+            if current_emoji is not None:
+                emoji_sum += data["value"]
+        elif emoji_id != current_emoji:
+            if current_emoji is not None:
+                emoji_dict["count"] = emoji_sum
+                print(f"{current_emoji}\t{emoji_dict}")
+            current_emoji = emoji_id
+            emoji_sum = 1
+
+    elif key.startswith("website"):
+        website_id , strdata = line.strip().split('\t')
+        data = eval(strdata.strip())
+        if website_id == current_url:
+            if current_url is not None:
+                url_sum += data["value"]
+        elif website_id != current_url:
+            if current_url is not None:
+                url_dict["count"] = url_sum
+                print(f"{current_url}\t{url_dict}")
+            current_url = website_id
+            url_sum = 1
+                
+
+# Print the last data
+if current_croissance is not None:
+    croissance_dict["count"] = croissance_sum
+    print(f"{current_croissance}\t{croissance_dict}")
+
 if current_user is not None:
     if count > 0:
         engagement_rate_avg = engagement_rate_sum / count
-        print(f"{current_user}\tfollowers:{earliest_followers}")
-        print(f"{current_user}\tengagement_rate:{engagement_rate_avg:.4f}")
+        print(f"{current_user}\t{user_dict}")
 
-# """
-# This script reads the output of the mapper.py script and reduces it to a list of users and their earliest follower count.
-# The input to the reducer is sorted by user name, so all the records for a particular user are grouped together.
-# The reducer then iterates through each record for a user and keeps track of the earliest follower count and the time it was recorded.
-# The output of the reducer is a list of users and their earliest follower count.
-# """
-# #!/usr/bin/env python3
-# import sys 
+if current_language is not None:
+    language_dict["count"] = language_sum
+    print(f"{current_language}\t{language_dict}")
 
-# current_user = None
-# current_followers = 0
-# current_time = "00:00:00"
-# engagement_rate_sum = 0.0
-# count = 1
+if current_toot_with_media is not None:
+    toot_with_media_dict["count"] = toot_with_media_sum
+    print(f"{current_toot_with_media}\t{toot_with_media_dict}")
 
-# for line in sys.stdin:
-# 	user, data = line.strip().split('\t')
-# 	followers = data.split('@')[0] + '@' + data.split('@')[1]
-# 	engagement_rate = data.split('@')[2]
-# 	user = user.strip()
-# 	followers = followers.strip()
-# 	engagement_rate = engagement_rate.strip()
-# 	if current_user == user:
-# 		if current_time > followers.split('@')[0]:
-# 			current_time = followers.split('@')[0]
-# 			current_followers = int(followers.split('@')[1])
-# 		engagement_rate_sum += float(engagement_rate)
-# 		count += 1
-# 	else:
-# 		if current_user:
-# 			# Calculate the average engagement rate
-# 			engagement_rate_avg = engagement_rate_sum / count
-# 			print(f"{current_user}\tfollowers:{current_followers}@engagement_rate:{engagement_rate_avg:.4f}")
-# 		current_user = user
-# 		current_followers = int(followers.split('@')[1])
-# 		current_time = followers.split('@')[0]
-# 		engagement_rate_sum = float(engagement_rate)
-# 		count = 1
+if current_emoji is not None:
+    emoji_dict["count"] = emoji_sum
+    print(f"{current_emoji}\t{emoji_dict}")
+
+if current_url is not None:
+    url_dict["count"] = url_sum
+    print(f"{current_url}\t{url_dict}")
