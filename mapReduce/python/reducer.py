@@ -1,5 +1,19 @@
 #!/usr/bin/env python3
 import sys
+# import happybase
+
+# # Initialize a connection to HBase
+# connection = happybase.Connection('localhost', 9090, autoconnect=False)
+# # Select a table family name
+# table_family = 'data'
+
+# # Define the HBase tables
+# user_table = connection.table('user_data')
+# croissance_table = connection.table('croissance_data')
+# language_table = connection.table('language_data')
+# toot_with_media_table = connection.table('toot_with_media_data')
+# emoji_table = connection.table('emoji_data')
+# url_table = connection.table('website_data')
 
 current_user = None
 current_croissance = None
@@ -53,6 +67,7 @@ for line in sys.stdin:
                     user_dict["engagement_rate"] = engagement_rate_avg
                     user_dict["followers"] = earliest_followers
                     print(f"{current_user}\t{user_dict}")
+                    # user_table.put(current_user.encode(), {table_family.encode(): str(user_dict).encode()})
             current_user = user
             earliest_followers = followers
             old_time = time
@@ -140,6 +155,7 @@ if current_user is not None:
     if count > 0:
         engagement_rate_avg = engagement_rate_sum / count
         print(f"{current_user}\t{user_dict}")
+        # user_table.put(current_user.encode(), {table_family.encode(): str(user_dict).encode()})
 
 if current_language is not None:
     language_dict["count"] = language_sum

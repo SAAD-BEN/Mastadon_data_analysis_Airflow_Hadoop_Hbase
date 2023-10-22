@@ -1,0 +1,12 @@
+sudo pip install -r /home/project/Mastadon_data_analysis_Airflow_Hadoop_Hbase/requirements.txt
+sudo python3 /home/project/Mastadon_data_analysis_Airflow_Hadoop_Hbase/dataCollection/loadData.py
+
+hadoop fs -rm -r /raw/
+
+# Job run
+hadoop jar  /usr/local/hadoop/share/hadoop/tools/lib/hadoop-streaming-3.3.6.jar -mapper /home/project/Mastadon_data_analysis_Airflow_Hadoop_Hbase/mapReduce/python/mapper.py -reducer /home/project/Mastadon_data_analysis_Airflow_Hadoop_Hbase/mapReduce/python/reducer.py -input /raw/2023-10-21/19-0-posts.json -output /test/anass32/ 
+hadoop fs -cat /test/anass30/part-00000
+
+#hbase 
+/usr/local/Hbase/bin/start-hbase.sh
+sudo ./bin/hbase shell

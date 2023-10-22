@@ -2,3 +2,4 @@ Mastodon.py
 python-dotenv
 hdfs
 pandas
+happybase
