@@ -5,13 +5,22 @@ This README provides an overview of a data pipeline project that consists of fou
 ## Folders structure
 ```
 Repository Root
+├── airFlowDag
+│   ├── mastadon_dag.py
+│
 ├── dataCollection
-│   ├── Commands.txt
 │   ├── last_toot_id.txt
 │   ├── loadData.py
 │   ├── public_posts.json
-│   ├── requirements.txt
 │   ├── tests.ipynb
+│
+├── images
+│   ├── airflow.PNG
+│   ├── gantt.PNG
+│   ├── workflow.PNG
+│
+├── loadingIntoHbase
+│   ├── insertion.py
 │
 ├── mapReduce
 │   ├── Python
@@ -19,13 +28,24 @@ Repository Root
 │   │   ├── reducer.py
 │
 ├── airFlowDag
+│   ├── mastadon_dag.py
+│
 │
 ├── README.md
+├── analysis.ipynb
+├── Commands.txt
+├── RGPD.pdf
+├── requirements.txt
+
 ```
 
 ## Project Overview
 
+
 As a Data Developer, your role in this project is to set up an automated pipeline to address the following challenges:
+---
+![Workflow](/images/workflow.png)
+---
 
 ### Phase 1: Data Collection
 
@@ -47,11 +67,41 @@ As a Data Developer, your role in this project is to set up an automated pipelin
 
 ### Phase 3: Data Storage in HBase
 
-- **HBase Schema Design:** Design the HBase schema based on the information you want to extract.
+- **HBase Schema Design:** Design the HBase tables schema based on the information you want to extract.
+
+| **Table Name**           | **Description**                               | **Schema**                                 |
+|--------------------------|-----------------------------------------------|-------------------------------------------|
+| `language_table`         | Stores language counts.                      | - Row Key: Language code (e.g., 'en', 'es')<br>- Columns:<br>  - `data:count`: Count of users/data.<br>- Timestamp: Record timestamp.        |
+| `user_table`             | Stores user information, engagement rates, and followers. | - Row Key: User ID (e.g., '1007156', '10106')<br>- Columns:<br>  - `data:engagement_rate`: User's engagement rate.<br>  - `data:followers`: Number of followers.<br>- Timestamp: Record timestamp. |
+| `croissance_table`       | Records user creation counts by month.       | - Row Key: Month (e.g., '2007-07', '2008-01')<br>- Columns:<br>  - `data:count`: Count of user creations.<br>- Timestamp: Record timestamp.   |
+| `url_table`              | Tracks mentions of external websites.        | - Row Key: Website URL (e.g., 'a.gup.pe', 'abcgazetesi.com')<br>- Columns:<br>  - `data:count`: Count of mentions.<br>- Timestamp: Record timestamp. |
+| `toot_with_media_table`  | Records the count of toots with media content. | - Row Key: Fixed key 'toot_with_media'<br>- Columns:<br>  - `data:count`: Count of toots with media.<br>- Timestamp: Record timestamp.   |
+| `tag_table`              | Stores counts of used tags.                  | - Row Key: Tag name (e.g., '10yrsago', '17thcentury')<br>- Columns:<br>  - `data:count`: Count of tag usage.<br>- Timestamp: Record timestamp. |
+
 
 - **Best Practices:** Follow best practices for row key design, column family design, compression, bloom filters, batch inserts, etc.
 
 - **Table Creation:** Create the necessary tables in HBase.
+
+```
+# HBase connection settings
+hbase_host = 'localhost'  # Replace with your HBase host
+hbase_port = 9090  # Default HBase port
+# Connect to HBase
+connection = happybase.Connection(host=hbase_host, port=hbase_port)
+
+tables_list = ["user_table", "croissance_table", "language_table", "toot_with_media_table", "emoji_table", "url_table", "tag_table"]
+tables = connection.tables()
+# remove the b' and ' from the table names
+tables = [table_name.decode() for table_name in tables]
+
+# Create the tables if they do not exist
+for table_name in tables_list:
+    if table_name not in tables:
+        connection.create_table(table_name, {'data': dict()})
+
+connection.close()
+```
 
 - **Data Insertion:** Populate the output from the reducer into HBase tables using a Python HBase client or your preferred method.
 
@@ -65,33 +115,15 @@ As a Data Developer, your role in this project is to set up an automated pipelin
 
 ### Phase 5: Data Analysis
 
-After successfully completing the previous phases, you can perform data analysis. You'll write queries to:
-
-#### User Analysis
-
-- Identify users with the highest number of followers.
-- Analyze user engagement rates.
-- Analyze user growth over time using the `user_created_at` metric.
-
-#### Content Analysis
-
-- Identify the most shared external websites (URLs).
-
-#### Language and Region Analysis
-
-- Analyze the distribution of posts based on their language.
-
-#### Media Engagement Analysis
-
-- Determine the number of posts with multimedia attachments.
-
-#### Tag and Mention Analysis
-
-- Identify the most frequently used tags and mentioned users.
+After successfully completing the previous phases, you can perform data analysis. You
 
 ### Phase 6: Workflow Execution
 
 In the Apache Airflow web interface, activate the DAG, monitor DAG execution progress, and check logs for any issues. Once the DAG is complete, review the results in HBase.
+
+#### Airflow run details
+
+![Airflow Run](/images/airflow2.png)
 
 ### Phase 7: Optimization and Monitoring
 
@@ -101,14 +133,6 @@ Optimize MapReduce scripts for better performance. Monitor HBase for storage iss
 
 Update API tokens if organizational roles change, ensuring they have the necessary permissions for data retrieval.
 
-### Phase 9: Documentation Updates
-
-Update access and sharing rules documentation, including details on roles, permissions, access requests, and access granting/revocation processes.
-
-### Phase 10: Scheduling and Compliance
+### Phase 9: Scheduling and Compliance
 
 Ensure that DAGs are scheduled at appropriate intervals for data refresh. Update the data processing log to ensure GDPR compliance by documenting all personal data from Mastodon and how it's processed.
-
-Please refer to the old README for an overview of the Mastodon data structure, which provides insight into the format of Mastodon posts and user accounts.
-
-**Note:** The Mastodon data structure mentioned in the old README is a generalized representation, and actual data may vary depending on the instance and post content.

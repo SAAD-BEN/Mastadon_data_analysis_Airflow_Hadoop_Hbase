@@ -9,4 +9,16 @@ hadoop fs -cat /test/anass30/part-00000
 
 #hbase 
 /usr/local/Hbase/bin/start-hbase.sh
-sudo ./bin/hbase shell
+/usr/local/Hbase/bin/stop-hbase.sh
+
+/usr/local/Hbase/bin/hbase-daemon.sh start thrift
+/usr/local/Hbase/bin/hbase-daemon.sh stop thrift
+
+sudo /usr/local/Hbase/bin/hbase shell
+
+# Airflow
+/AirFlow/airflow-environment/airflow scheduler
+/AirFlow/airflow-environment/airflow webserver -p 8080
+
+
+mapred streaming -files /home/project/Mastadon_data_analysis_Airflow_Hadoop_Hbase/mapReduce/python/mapper.py,/home/project/Mastadon_data_analysis_Airflow_Hadoop_Hbase/mapReduce/python/reducer.py -mapper mapper.py -reducer reducer.py -input /raw/2023-10-21/19-0-posts.json

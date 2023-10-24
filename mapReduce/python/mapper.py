@@ -18,6 +18,7 @@ def process_data(input_data):
             media_attachments = data.get("media_attachments")
             emojis = data.get("emojis") if data.get("emojis") else []
             websites = data.get("content") if data.get("content") else []
+            tags = data.get("tags") if data.get("tags") else []
             
             if account:
                 user_id = 'user:' + str(account.get('id'))
@@ -60,7 +61,13 @@ def process_data(input_data):
                 if urls:
                     website_id = "website:" + urlparse(urls.group(0)).netloc
                     website_data = {"value": 1}
-                    print(f"{website_id}\t{website_data}")            
+                    print(f"{website_id}\t{website_data}")    
+                            
+            if tags != []:
+                for tag in tags:
+                    tag_id = "tag:" + tag.get('name')
+                    tag_data = {"value": 1}
+                    print(f"{tag_id}\t{tag_data}")
 
         except Exception as e:
             # Log exceptions to standard error

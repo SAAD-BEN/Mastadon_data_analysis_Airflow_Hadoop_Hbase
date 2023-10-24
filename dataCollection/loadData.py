@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 import os
 from hdfs import InsecureClient
 import datetime
+import time
 import json
 
 load_dotenv()
@@ -30,20 +31,26 @@ def retrieve_and_save_mastodon_data():
     # Define the HDFS path where you want to save the data
     hdfs_path = directory_path + '/' + str(now.hour) + '-' + str(now.minute)
 
-    # Retrieve the last toot ID from a file or start with None
+    # Retrieve the last toot ID from a local file or start with None
     try:
-        with hdfs_client.read('last_toot_id.txt', encoding='utf-8') as reader:
+        with open('/home/project/Mastadon_data_analysis_Airflow_Hadoop_Hbase/dataCollection/last_toot_id.txt', 'r', encoding='utf-8') as reader:
             last_toot_id = reader.read().strip()
     except FileNotFoundError:
         last_toot_id = None
 
     public_posts = []
 
-    # Specify the number of runs
-    n = 2000
+    # Specify the duration of collecting data in minutes
+    duration = 20 # Seconds
 
-    for _ in range(n):
-        # Retrieve public posts
+    # Get the current time
+    start_time = time.time()
+
+    while True:
+        # Check if 10 minutes have passed
+        if time.time() - start_time >= duration:
+            break        # Retrieve public posts
+
         new = mastodon.timeline_public(limit=40, since_id=last_toot_id)
         
         # Append the current run's public posts to the list
@@ -78,8 +85,8 @@ def retrieve_and_save_mastodon_data():
         writer.write(formatted_data_str)
 
     print('Data saved successfully to HDFS: ' + hdfs_path + '-posts.json')
-
-    # After retrieving the public posts, you can save the latest toot_id to the file.
+    
+    # After retrieving the public posts, you can save the latest toot_id to a local file.
     if public_posts:
         latest_toot = public_posts[0]  # Assuming the latest toot is at the first position
         latest_toot_id = latest_toot['id']
@@ -87,13 +94,15 @@ def retrieve_and_save_mastodon_data():
         # Convert latest_toot_id to a string
         latest_toot_id_str = str(latest_toot_id)
 
-        # Check if the file exists
-        if hdfs_client.status('/home/project/Mastadon_data_analysis_Airflow_Hadoop_Hbase/dataCollection/last_toot_id.txt', strict=False):
-            # Update the file
-            hdfs_client.write('/home/project/Mastadon_data_analysis_Airflow_Hadoop_Hbase/dataCollection/last_toot_id.txt', latest_toot_id_str, encoding='utf-8', overwrite=True)
-        else:
-            # Write the latest toot_id to the file
-            with hdfs_client.write('/home/project/Mastadon_data_analysis_Airflow_Hadoop_Hbase/dataCollection/last_toot_id.txt', encoding='utf-8') as f:
-                f.write(latest_toot_id_str)
+        # Define the path to the local file
+        local_file_path = '/home/project/Mastadon_data_analysis_Airflow_Hadoop_Hbase/dataCollection/last_toot_id.txt'
+
+        # Update or create the local file with the latest_toot_id
+        with open(local_file_path, 'w', encoding='utf-8') as writer:
+            writer.write(latest_toot_id_str)
+
 
     return hdfs_path + '-posts.json'
+
+if __name__ == '__main__':
+    retrieve_and_save_mastodon_data()

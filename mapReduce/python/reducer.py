@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 import sys
+import json
 # import happybase
 
 # # Initialize a connection to HBase
-# connection = happybase.Connection('localhost', 9090, autoconnect=False)
-# # Select a table family name
-# table_family = 'data'
+# connection = happybase.Connection('localhost', 9090)
 
 # # Define the HBase tables
 # user_table = connection.table('user_data')
@@ -21,6 +20,7 @@ current_language = None
 current_toot_with_media = None
 current_emoji = None
 current_url = None
+current_tag = None
 
 earliest_followers = float('inf')
 old_time = "00:00:00"
@@ -31,6 +31,7 @@ language_sum = 0
 toot_with_media_sum = 0
 emoji_sum = 0
 url_sum = 0
+tag_sum = 0
 count = 1
 
 unique_users_roissance = []
@@ -41,6 +42,7 @@ language_dict = {}
 toot_with_media_dict = {}
 emoji_dict = {}
 url_dict = {}
+tag_dict = {}
 
 for line in sys.stdin:
     key = line.strip().split('\t')[0]
@@ -67,7 +69,6 @@ for line in sys.stdin:
                     user_dict["engagement_rate"] = engagement_rate_avg
                     user_dict["followers"] = earliest_followers
                     print(f"{current_user}\t{user_dict}")
-                    # user_table.put(current_user.encode(), {table_family.encode(): str(user_dict).encode()})
             current_user = user
             earliest_followers = followers
             old_time = time
@@ -144,7 +145,19 @@ for line in sys.stdin:
                 print(f"{current_url}\t{url_dict}")
             current_url = website_id
             url_sum = 1
-                
+    
+    elif key.startswith("tag"):
+        tag_id , strdata = line.strip().split('\t')
+        data = eval(strdata.strip())
+        if tag_id == current_tag:
+            if current_tag is not None:
+                tag_sum += data["value"]
+        elif tag_id != current_tag:
+            if current_tag is not None:
+                tag_dict["count"] = tag_sum
+                print(f"{current_tag}\t{tag_dict}")
+            current_tag = tag_id
+            tag_sum = 1
 
 # Print the last data
 if current_croissance is not None:
@@ -155,7 +168,6 @@ if current_user is not None:
     if count > 0:
         engagement_rate_avg = engagement_rate_sum / count
         print(f"{current_user}\t{user_dict}")
-        # user_table.put(current_user.encode(), {table_family.encode(): str(user_dict).encode()})
 
 if current_language is not None:
     language_dict["count"] = language_sum
@@ -172,3 +184,7 @@ if current_emoji is not None:
 if current_url is not None:
     url_dict["count"] = url_sum
     print(f"{current_url}\t{url_dict}")
+
+if current_tag is not None:
+    tag_dict["count"] = tag_sum
+    print(f"{current_tag}\t{tag_dict}")
