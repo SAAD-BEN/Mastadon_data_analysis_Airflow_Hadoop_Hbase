@@ -123,7 +123,7 @@ In the Apache Airflow web interface, activate the DAG, monitor DAG execution pro
 
 #### Airflow run details
 
-![Airflow Run](/images/airflow2.png)
+![Airflow Run](/images/airflow.PNG)
 
 ### Phase 7: Optimization and Monitoring
 
